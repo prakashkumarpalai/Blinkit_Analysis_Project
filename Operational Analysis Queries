@@ -132,24 +132,31 @@ FROM
 -- 4. Per Order Profit Maximization Formula
 -- Profit = (Total Revenue - Total Cost) / Total Orders
 -- Calculate Total Revenue and Total Cost
+-- Calculate Total Revenue and Total Cost
 WITH order_stats AS (
     SELECT 
-        COUNT(O.OrderID) AS Total_Orders,
-        SUM(O.TotalAmount) AS Total_Revenue,
-        SUM(C.TotalCost) AS Total_Cost
+        O.Order_ID,
+        O.Total_Amount AS Total_Revenue,
+        SUM(P.Price * OD.Quantity) AS Total_Cost
     FROM 
         Orders O
     JOIN 
-        Cost C ON O.OrderID = C.OrderID
+        OrderDetails OD ON O.Order_ID = OD.Order_ID
+    JOIN 
+        Products P ON OD.Product_ID = P.Product_ID
+    GROUP BY 
+        O.Order_ID, O.Total_Amount
 )
 
+-- Calculate Per Order Profit
 SELECT 
-    Total_Orders,
-    Total_Revenue,
-    Total_Cost,
-    (Total_Revenue - Total_Cost) / Total_Orders AS Per_Order_Profit
+    COUNT(Order_ID) AS Total_Orders,
+    SUM(Total_Revenue) AS Total_Revenue,
+    SUM(Total_Cost) AS Total_Cost,
+    (SUM(Total_Revenue) - SUM(Total_Cost)) / COUNT(Order_ID) AS Per_Order_Profit
 FROM 
     order_stats;
+
 
 -- 5. Holistic comparison of Blinkit, Zepto, Instamart, and BB
 -- - Delivery Speed
