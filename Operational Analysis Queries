@@ -78,9 +78,32 @@ WHERE T.Total_Count > 0;
 
 -- Part C: Efficiency & Growth Strategy Analysis Queries
 -- 1. Relationship between distance covered and average delivery time
-SELECT AVG(D.DistanceCovered) AS Avg_Distance, AVG(O.DeliveryTime) AS Avg_Delivery_Time
-FROM Delivery D
-JOIN Orders O ON D.OrderID = O.OrderID;
+WITH stats AS (
+    SELECT 
+        COUNT(*) AS n,
+        SUM(Distance_Covered) AS sum_x,
+        SUM(Average_Delivery_Time) AS sum_y,
+        SUM(Distance_Covered * Average_Delivery_Time) AS sum_xy,
+        SUM(Distance_Covered * Distance_Covered) AS sum_x_squared,
+        SUM(Average_Delivery_Time * Average_Delivery_Time) AS sum_y_squared
+    FROM 
+        (SELECT 
+            D.Distance_Covered,
+            AVG(O.Delivery_Time) AS Average_Delivery_Time
+        FROM 
+            Delivery D
+        JOIN 
+            Orders O ON D.OrderID = O.OrderID
+        GROUP BY 
+            D.Distance_Covered) AS subquery
+)
+
+SELECT 
+    (n * sum_xy - sum_x * sum_y) / 
+    SQRT((n * sum_x_squared - sum_x * sum_x) * (n * sum_y_squared - sum_y * sum_y)) AS correlation_coefficient
+FROM 
+    stats;
+
 
 -- 2. Strategies to optimize store-level operations and improve delivery efficiency
 -- - Route Optimization
@@ -89,9 +112,44 @@ JOIN Orders O ON D.OrderID = O.OrderID;
 
 -- 3. Revenue Maximization Formula
 -- Revenue = Total Orders * Average Order Value
+-- Calculate Total Orders and Average Order Value
+WITH revenue_stats AS (
+    SELECT 
+        COUNT(OrderID) AS Total_Orders,
+        AVG(TotalAmount) AS Average_Order_Value
+    FROM 
+        Orders
+)
+
+SELECT 
+    Total_Orders,
+    Average_Order_Value,
+    Total_Orders * Average_Order_Value AS Total_Revenue
+FROM 
+    revenue_stats;
+
 
 -- 4. Per Order Profit Maximization Formula
 -- Profit = (Total Revenue - Total Cost) / Total Orders
+-- Calculate Total Revenue and Total Cost
+WITH order_stats AS (
+    SELECT 
+        COUNT(O.OrderID) AS Total_Orders,
+        SUM(O.TotalAmount) AS Total_Revenue,
+        SUM(C.TotalCost) AS Total_Cost
+    FROM 
+        Orders O
+    JOIN 
+        Cost C ON O.OrderID = C.OrderID
+)
+
+SELECT 
+    Total_Orders,
+    Total_Revenue,
+    Total_Cost,
+    (Total_Revenue - Total_Cost) / Total_Orders AS Per_Order_Profit
+FROM 
+    order_stats;
 
 -- 5. Holistic comparison of Blinkit, Zepto, Instamart, and BB
 -- - Delivery Speed
